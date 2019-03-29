@@ -26,9 +26,11 @@ AWS Glue服务大大降低了大数据ETL操作复杂度，有望在19年底前�
 注意：可以在这里通过一个lambda函数将json格式转化为parquet/orc格式放入S3,提高后续查询效率。
 
 3. 生成实验数据  
-通过cloudformation配置cognito
-https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Kinesis-Data-Generator-Cognito-User&templateURL=https://s3-us-west-2.amazonaws.com/kinesis-helpers/cognito-setup.json
-生成的输出中点击KinesisDataGeneratorUrl进入生成器页面,生成json格式数据流。
+通过cloudformation配置cognito:  
+
+https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Kinesis-Data-Generator-Cognito-User&templateURL=https://s3-us-west-2.amazonaws.com/kinesis-helpers/cognito-setup.json  
+
+点击KinesisDataGeneratorUrl进入生成器页面,生成json格式数据流。  
 
 在s3的data/raw文件夹下可以看到数据默认以yyyy/mm/dd/hh进行了分区。   
 
@@ -40,21 +42,22 @@ crawler可以去爬的数据源包括：s3，jdbc，dynamodb.
 2. 在databses/tables中可以看到爬出的metadata(后两个表),后面在我们的ETL job中会用到这些table.
 ![](tables.png)  
 
-3. 创建1个job,选择自己编写脚本。  
 
-4. 创建一个dev endpoints,即一个glue开发环境。按照操作指引，上传一个ssh public key(可以自己通过keygen 生成).  
-endpoints需要5-10分钟的时间ready.  
+3. 创建一个dev endpoints,即一个glue开发环境。按照操作指引，上传一个ssh public key(可以自己通过keygen 生成).  
+endpoints需要5-10分钟的时间ready.   
 
-` ssh-keygen -t rsa `
+ ```
+ ssh-keygen -t rsa
+ ```
 
-5. 在自己的电脑上下载安装zepplin并启动(bin/zeppelin-daemon.sh start), 测试http://localhost:8080 正常打开：
+4. 在自己的电脑上下载安装zepplin并启动(bin/zeppelin-daemon.sh start), 测试http://localhost:8080 正常打开：
 ![](zeppelin.png)   
 
-6. 通过设置ssh端口转发连接到endpoint背后的EMR集群.
+5. 通过设置ssh端口转发连接到endpoint背后的EMR集群.
 ```
 ssh -i id_rsa  -NTL 9015:169.254.76.1:9007 glue@ec2-3-80-10-78.compute-1.amazonaws.com
 ```
-7. 新建一个notebook， 开始编写Pyspark代码：
+6. 新建一个notebook， 开始编写Pyspark代码：
 ```
 %pyspark
 
@@ -81,7 +84,7 @@ joined_data = Join.apply(raw_data,reference_data, 'track_id', 'track_id', transf
 datasink = glueContext.write_dynamic_frame.from_options(frame = joined_data_clean, connection_type = "s3", connection_options = {"path": "s3://mia-datalake-demo-bucket/data/processed-data/"}, format = "parquet", transformation_ctx = "datasink")
 ```
 
-8. 使用athena 对数据进行即时查询
+7. 使用athena 对数据进行即时查询
 在glue中的table会自动出现在athena中。但是别忘了，我们前面的etl只是把join后的数据放入s3就完事了，所以join后的metadata在glue中并没有。最快的方法是让glue再对目标文件爬一次就可以了。  
 执行查询语句:  
 
@@ -90,7 +93,7 @@ select artist_name, count(artist_name) as count
 from processed_data group by artist_name order by count desc
 ```
 
-9. 删除 dev endpoints，否则会持续产生EMR的费用。
+8. 删除 dev endpoints，否则会持续产生EMR的费用。
 
 
 ## to do list
