@@ -84,7 +84,8 @@ joined_data = Join.apply(raw_data,reference_data, 'track_id', 'track_id', transf
 datasink = glueContext.write_dynamic_frame.from_options(frame = joined_data_clean, connection_type = "s3", connection_options = {"path": "s3://mia-datalake-demo-bucket/data/processed-data/"}, format = "parquet", transformation_ctx = "datasink")
 ```
 
-7. 使用athena 对数据进行即时查询
+7. 使用athena 对数据进行即时查询 </br>
+
 在glue中的table会自动出现在athena中。但是别忘了，我们前面的etl只是把join后的数据放入s3就完事了，所以join后的metadata在glue中并没有。最快的方法是让glue再对目标文件爬一次就可以了。  
 执行查询语句:  
 
