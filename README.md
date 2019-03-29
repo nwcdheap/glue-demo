@@ -17,7 +17,9 @@ AWS Glue服务大大降低了大数据ETL操作复杂度，有望在19年底前�
 ### 数据准备
 1. 创建S3桶
 在us-east-1 创建1个S3桶 mia-datalake-demo-bucket. 在桶里新建/data/reference_data文件夹，放入track-list.json文件。该文件中共100条记录，每条记录格式如下：
-`{"track_id" : "1" , "track_name" : "God's Plan" , "artist_name" : "Drake"}`  
+```
+{"track_id" : "1" , "track_name" : "God's Plan" , "artist_name" : "Drake"}
+```
 
 2. 创建kenesis firhose  
 在us-east-1 创建1条kinesis firehose stream, destination设为上一步创建的S3桶的data/raw文件夹。  
@@ -26,22 +28,23 @@ AWS Glue服务大大降低了大数据ETL操作复杂度，有望在19年底前�
 3. 生成实验数据  
 通过cloudformation配置cognito
 https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=Kinesis-Data-Generator-Cognito-User&templateURL=https://s3-us-west-2.amazonaws.com/kinesis-helpers/cognito-setup.json
-生成的输出中点击KinesisDataGeneratorUrl进入生成器页面,生成json格式数据流。每条源记录格式如下：
-```
-{  "uuid": "19b3adda-fabe-4d63-aac4-1e967b295e49",  "device_ts": "2019-03-22 04:18:42.032",  "device_id": 23,  "device_temp": 34,  "track_id": 16,    "activity_type": "Walking"}
-```   
+生成的输出中点击KinesisDataGeneratorUrl进入生成器页面,生成json格式数据流。
+
 在s3的data/raw文件夹下可以看到数据默认以yyyy/mm/dd/hh进行了分区。   
 
 
 ### 数据ETL
-1. 创建1个crawler，数据源选择s3://mia-datalake-demo-bucket/data/ . crawler可以去爬s3/jdbc/dynamodb.  
+1. 创建1个crawler，数据源选择s3://mia-datalake-demo-bucket/data/ .   
+crawler可以去爬的数据源包括：s3，jdbc，dynamodb.  
 
-2. 在databses/tables中可以看到爬出的metadata,后面在我们的ETL job中会用到这些table.
+2. 在databses/tables中可以看到爬出的metadata(后两个表),后面在我们的ETL job中会用到这些table.
 ![](tables.png)  
 
 3. 创建1个job,选择自己编写脚本。  
 
-4. 创建一个dev endpoints,即一个glue开发环境。按照操作指引，上传一个ssh public key(可以自己通过keygen 生成).endpoints需要5-10分钟的时间ready.
+4. 创建一个dev endpoints,即一个glue开发环境。按照操作指引，上传一个ssh public key(可以自己通过keygen 生成).  
+endpoints需要5-10分钟的时间ready.  
+
 ` ssh-keygen -t rsa `
 
 5. 在自己的电脑上下载安装zepplin并启动(bin/zeppelin-daemon.sh start), 测试http://localhost:8080 正常打开：
@@ -79,7 +82,9 @@ datasink = glueContext.write_dynamic_frame.from_options(frame = joined_data_clea
 ```
 
 8. 使用athena 对数据进行即时查询
-在glue中的table会自动出现在athena中。但是别忘了，我们前面的etl只是把join后的数据放入s3就完事了，所以join后的metadata在glue中并没有。最快的方法是让glue再对目标文件爬一次就可以了。
+在glue中的table会自动出现在athena中。但是别忘了，我们前面的etl只是把join后的数据放入s3就完事了，所以join后的metadata在glue中并没有。最快的方法是让glue再对目标文件爬一次就可以了。  
+执行查询语句:  
+
 ```
 select artist_name, count(artist_name) as count
 from processed_data group by artist_name order by count desc
